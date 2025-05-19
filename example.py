@@ -1,15 +1,17 @@
-import gym
+import gymnasium as gym
 
-import clubs_gym
+import poker_gym
 
-env = gym.make("KuhnTwoPlayer-v0")
+# env = gym.make("KuhnTwoPlayer-v0")
+env = gym.make("NoLimitHoldemNinePlayer-v0")
 
-env.register_agents([clubs_gym.agent.kuhn.NashKuhnAgent(0.3)] * 2)
+env.unwrapped.register_agents([poker_gym.agent.kuhn.NashKuhnAgent(0.3)] * 9)
 
-obs = env.reset()
+obs, info = env.reset()
 
 while True:
-    bet = env.act(obs)
+    action = env.action_space.sample()
+    bet = env.unwrapped.act(obs)
     obs, rewards, done, info = env.step(bet)
 
     if all(done):

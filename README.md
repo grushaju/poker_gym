@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./clubs_gym/resources/images/black_red_logo.svg" alt="Logo" width=200px>
+<img src="poker_gym/resources/images/black_red_logo.svg" alt="Logo" width=200px>
 
 </div>
 
@@ -27,10 +27,10 @@ Since [gym](https://gym.openai.com/) isn't designed for multi-agent games, the a
 ```python
 import gym
 
-import clubs_gym
+import poker_gym
 
 env = gym.make("KuhnTwoPlayer-v0")
-env.register_agents([clubs_gym.agent.kuhn.NashKuhnAgent(0.3)] * 2)
+env.register_agents([poker_gym.agent.kuhn.NashKuhnAgent(0.3)] * 2)
 obs = env.reset()
 
 while True:

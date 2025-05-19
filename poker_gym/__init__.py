@@ -4,7 +4,7 @@ __license__ = "GPL-3.0"
 __copyright__ = f"Copyright (c) 2022, {__author__}."
 __homepage__ = "https://github.com/fschlatt/clubs_gym"
 __docs__ = (
-    "clubs is an open ai gym environment for running arbitrary poker configurations."
+    "poker_game is an open ai gym environment for running arbitrary poker configurations."
 )
 
 try:
@@ -23,7 +23,7 @@ else:
 
 from typing import Dict
 
-import clubs
+import poker_game
 
 __all__ = ["agent", "envs"]
 ENVS = []
@@ -31,8 +31,8 @@ ENVS = []
 
 def __register() -> None:
     try:
-        env_configs: Dict[str, clubs.configs.PokerConfig] = {}
-        for name, config in clubs.configs.__dict__.items():
+        env_configs: Dict[str, poker_game.configs.PokerConfig] = {}
+        for name, config in poker_game.configs.__dict__.items():
             if not name.endswith("_PLAYER"):
                 continue
             env_id = "".join(sub_string.title() for sub_string in name.split("_"))

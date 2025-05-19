@@ -1,4 +1,4 @@
-name: clubs
+name: poker_game
 channels:
   - conda-forge
   - defaults
