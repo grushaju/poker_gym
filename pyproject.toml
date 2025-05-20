@@ -1,0 +1,31 @@
+[build-system]
+# XXX: If your project needs other packages to build properly, add them to this list.
+requires = ["setuptools >= 75.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+version = "1.0.0"
+name = "poker_gym"
+#dependencies = [
+#    "numpy>=1.16.6",
+#    "flask>=2.0.0",
+#    "flask-socketio==4.3.2",
+#    "gevent>=20.0.0"
+#]
+requires-python = ">= 3.8"
+
+authors = [
+  {name = "Pavel Grushin"}
+]
+maintainers = [
+  {name = "Pavel Grushin"}
+]
+description = "Is under construction"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/grushaju/poker_gym"
+Repository = "https://github.com/grushaju/poker_gym.git"
+Issues = "https://github.com/grushaju/poker_gym/issues"

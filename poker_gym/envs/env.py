@@ -105,7 +105,7 @@ class ClubsEnv(gym.Env):  # type: ignore
         ... )
     """
 
-    metadata = {"render.modes": ["ascii", "human"]}
+    metadata = {"render_modes": ["ascii", "human", "rgb_array"], "render_fps": 4}
 
     def __init__(
         self,
@@ -196,16 +196,16 @@ class ClubsEnv(gym.Env):  # type: ignore
 
     def step(  # type: ignore
         self, bet: int
-    ) -> Tuple[poker_game.poker.engine.ObservationDict, List[int], List[bool], None]:
-        obs, rewards, done = self.dealer.step(bet)
+    ) -> Tuple[poker_game.poker.engine.ObservationDict, List[int], List[bool], bool, dict]:
+        obs, rewards, done, info = self.dealer.step(bet)
         if self.agents is not None:
             self.prev_obs = obs
-        return obs, rewards, done, None
+        return obs, rewards, done, False, info
 
     def reset(  # type: ignore
         self, reset_button: bool = False,
             reset_stacks: bool = False,
-            seed: int = 123,
+            seed: int = None,
             options: dict = None
     ) -> poker_game.poker.engine.ObservationDict:
         result = self.dealer.reset(reset_button, reset_stacks)

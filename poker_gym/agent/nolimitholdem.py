@@ -1,0 +1,13 @@
+import random
+import poker_game
+from poker_gym.agent import base
+
+
+class NoLimitHoldemAgent(base.BaseAgent):
+
+    def __init__(self, model: None) -> None:
+        super().__init__()
+        self.model = model
+
+    def act(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+        return -1
