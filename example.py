@@ -3,8 +3,10 @@ from gymnasium.wrappers import FlattenObservation
 
 import poker_gym
 
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_util import make_vec_env
+# from stable_baselines3 import PPO
+# from stable_baselines3.common.env_util import make_vec_env
+
+from sb3_plus import MultiOutputPPO
 
 
 
@@ -14,7 +16,7 @@ env.unwrapped.register_agents([poker_gym.agent.nolimitholdem.NoLimitHoldemAgent(
 
 w_env = FlattenObservation(env)
 
-model = PPO("MlpPolicy", w_env, verbose=1)
+model = MultiOutputPPO("MlpPolicy", w_env, verbose=1)
 model.learn(total_timesteps=100)
 model.save("PokerGame")
 

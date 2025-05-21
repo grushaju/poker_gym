@@ -1,11 +1,10 @@
+from __future__ import annotations
+
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, SupportsFloat
 
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
+import numpy as np
+from gymnasium.core import ActType, ObsType, RenderFrame
 
 import poker_game
 import gymnasium as gym
@@ -14,247 +13,41 @@ from gymnasium import spaces
 from poker_gym import agent, error
 
 
-class ClubsEnv(gym.Env):  # type: ignore
-    """Runs a range of different of poker games dependent on the
-    given configuration. Supports limit, no limit and pot limit
-    bet sizing, arbitrary deck sizes, arbitrary hole and community
-    cards and many other options.
+class PokerEnv(gym.Env):
+    metadata = {'render_modes': ['human', 'rgb_array']}
 
-    Parameters
-    ----------
-    num_players : int
-        maximum number of players
-    num_streets : int
-        number of streets including preflop, e.g. for texas hold'em
-        num_streets=4
-    blinds : Union[int, List[int]]
-        blind distribution as a list of ints, one for each player
-        starting from the button e.g. [0, 1, 2] for a three player game
-        with a sb of 1 and bb of 2, passed ints will be expanded to
-        all players i.e. pass blinds=0 for no blinds
-    antes : Union[int, List[int]]
-        ante distribution as a list of ints, one for each player
-        starting from the button e.g. [0, 0, 5] for a three player game
-        with a bb ante of 5, passed ints will be expanded to all
-        players i.e. pass antes=0 for no antes
-    raise_sizes : Union[float, str, List[Union[float, str]]]
-        max raise sizes for each street, valid raise sizes are ints,
-        floats, and 'pot', e.g. for a 1-2 limit hold'em the raise sizes
-        should be [2, 2, 4, 4] as the small and big bet are 2 and 4.
-        float('inf') can be used for no limit games. pot limit raise
-        sizes can be set using 'pot'. if only a single int, float or
-        string is passed the value is expanded to a list the length
-        of number of streets, e.g. for a standard no limit game pass
-        raise_sizes=float('inf')
-    num_raises : Union[float, List[float]]
-        max number of bets for each street including preflop, valid
-        raise numbers are ints and floats. if only a single int or float
-        is passed the value is expanded to a list the length of number
-        of streets, e.g. for a standard limit game pass num_raises=4
-    num_suits : int
-        number of suits to use in deck, must be between 1 and 4
-    num_ranks : int
-        number of ranks to use in deck, must be between 1 and 13
-    num_hole_cards : int
-        number of hole cards per player, must be greater than 0
-    num_community_cards : Union[int, List[int]]
-        number of community cards per street including preflop, e.g.
-        for texas hold'em pass num_community_cards=[0, 3, 1, 1]. if only
-        a single int is passed, it is expanded to a list the length of
-        number of streets
-    num_cards_for_hand : int
-        number of cards for a valid poker hand, e.g. for texas hold'em
-        num_cards_for_hand=5
-    mandatory_num_hole_cards : int
-        number of hole cards which have to be used for the hand, e.g.
-        for pot limit omaha mandatory_num_hole_cards=2
-    start_stack : int
-        number of chips each player starts with
-    low_end_straight : bool, optional
-        toggle to include the low ace straight within valid hands, by
-        default True
-    order : Optional[List[str]], optional
-        optional custom order of hand ranks, must be permutation of
-        ['sf', 'fk', 'fh', 'fl', 'st', 'tk', 'tp', 'pa', 'hc']. if
-        order=None, hands are ranked by rarity. by default None
+    def _get_obs(self) -> ObsType:
+        pass
 
-    Examples
-    --------
+    def _get_info(self) -> dict:
+        pass
 
-        >>> Dealer( # 1-2 Heads Up No Limit Texas Hold'em
-        ...     num_players=2, num_streets=4, blinds=[1, 2], antes=0,
-        ...     raise_sizes=float('inf'), num_raises=float('inf'),
-        ...     num_suits=4, num_ranks=13, num_hole_cards=2,
-        ...     mandatory_num_hole_cards=0, start_stack=200
-        ... )
-        >>> Dealer( # 1-2 6 Player PLO
-        ...     num_players=6, num_streets=4, blinds=[0, 1, 2, 0, 0, 0],
-        ...     antes=0, raise_sizes='pot', num_raises=float('inf'),
-        ...     num_suits=4, num_ranks=13, num_hole_cards=4,
-        ...     mandatory_num_hole_cards=2, start_stack=200
-        ... )
-        >>> Dealer( # 1-2 Heads Up No Limit Short Deck
-        ...     num_players=2, num_streets=4, blinds=[1, 2], antes=0,
-        ...     raise_sizes=float('inf'), num_raises=float('inf'),
-        ...     num_suits=4, num_ranks=9, num_hole_cards=2,
-        ...     mandatory_num_hole_cards=0, start_stack=200,
-        ...     order=[
-        ...         'sf', 'fk', 'fl', 'fh', 'st',
-        ...         'tk', 'tp', 'pa', 'hc'
-        ...         ]
-        ... )
-    """
+    def step(
+            self, action: ActType
+    ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+        terminated = False
+        truncated = False
+        reward = np.random.random()
+        observation = self._get_obs()
+        info = self._get_info()
+        return observation, reward, truncated, terminated, info
 
-    metadata = {"render_modes": ["ascii", "human", "rgb_array"], "render_fps": 4}
+    def reset(
+            self,
+            seed: Optional[int] = None,
+            options: Optional[dict] = None,
+    ) -> tuple[ObsType, dict[str, Any]]:
+        observation = self._get_obs()
+        info = self._get_info()
+        return observation, info
 
-    def __init__(
-        self,
-        num_players: int,
-        num_streets: int,
-        blinds: Union[int, List[int]],
-        antes: Union[int, List[int]],
-        raise_sizes: Union[
-            int, Literal["pot", "inf"], List[Union[int, Literal["pot", "inf"]]]
-        ],
-        num_raises: Union[int, Literal["inf"], List[Union[int, Literal["inf"]]]],
-        num_suits: int,
-        num_ranks: int,
-        num_hole_cards: int,
-        num_community_cards: Union[int, List[int]],
-        num_cards_for_hand: int,
-        mandatory_num_hole_cards: int,
-        start_stack: int,
-        low_end_straight: bool = True,
-        order: Optional[List[str]] = None,
-    ) -> None:
+    def render(self) -> Union[RenderFrame, list[RenderFrame], None]:
+        return None
 
-        self.dealer = poker_game.Dealer(
-            num_players,
-            num_streets,
-            blinds,
-            antes,
-            raise_sizes,
-            num_raises,
-            num_suits,
-            num_ranks,
-            num_hole_cards,
-            num_community_cards,
-            num_cards_for_hand,
-            mandatory_num_hole_cards,
-            start_stack,
-            low_end_straight,
-            order,
-        )
 
-        max_bet = start_stack * num_players
-        if isinstance(num_community_cards, list):
-            comm_card_numb = sum(num_community_cards)
-        else:
-            comm_card_numb = num_community_cards
-        self.action_space = spaces.MultiDiscrete(max_bet)
-        card_space = spaces.Tuple(
-            (spaces.Discrete(num_ranks), spaces.Discrete(num_suits))
-        )
-        hole_card_space = spaces.Tuple((card_space,) * num_hole_cards)
-        self.observation_space = spaces.Dict(
-            {
-                "action": spaces.Discrete(num_players),
-                "active": spaces.MultiBinary(num_players),
-                "button": spaces.Discrete(num_players),
-                "call": spaces.Discrete(max_bet),
-                "community_cards": spaces.Tuple((card_space,) * comm_card_numb),
-                "hole_cards": spaces.Tuple((hole_card_space,) * num_players),
-                "max_raise": spaces.Discrete(max_bet),
-                "min_raise": spaces.Discrete(max_bet),
-                "pot": spaces.Discrete(max_bet),
-                "stacks": spaces.Tuple((spaces.Discrete(max_bet),) * num_players),
-                "street_commits": spaces.Tuple(
-                    (spaces.Discrete(max_bet),) * num_players
-                ),
-            }
-        )
-
-        self.agents: Optional[Dict[int, agent.BaseAgent]] = None
-        self.prev_obs: Optional[poker_game.poker.engine.ObservationDict] = None
-
-    def __del__(self) -> None:
-        self.close()
-
-    def act(self, obs: poker_game.poker.engine.ObservationDict) -> int:
-        if self.agents is None:
-            raise error.NoRegisteredAgentsError(
-                "register agents using env.register_agents(...) before"
-                "calling act(obs)"
-            )
-        if self.prev_obs is None:
-            raise error.EnvironmentResetError(
-                "call reset() before calling first step()"
-            )
-        action = self.prev_obs["action"]
-        bet = self.agents[action].act(obs)
-        return bet
-
-    def step(  # type: ignore
-        self, bet: int
-    ) -> Tuple[poker_game.poker.engine.ObservationDict, List[int], List[bool], bool, dict]:
-        obs, rewards, done, info = self.dealer.step(bet)
-        if self.agents is not None:
-            self.prev_obs = obs
-        return obs, rewards, done, False, info
-
-    def reset(  # type: ignore
-        self, reset_button: bool = False,
-            reset_stacks: bool = False,
-            seed: int = None,
-            options: dict = None
-    ) -> poker_game.poker.engine.ObservationDict:
-        result = self.dealer.reset(reset_button, reset_stacks)
-        obs, info = result
-        if self.agents is not None:
-            self.prev_obs = obs
-        return result
-
-    def render(self, mode: str = "human", **kwargs: Any) -> None:
-        self.dealer.render(mode=mode, **kwargs)
-
-    def close(self) -> None:
-        if isinstance(self.dealer.viewer, poker_game.render.GraphicViewer):
-            self.dealer.viewer.close()
-
-    def register_agents(
-        self, agents: Union[List[agent.BaseAgent], Dict[int, agent.BaseAgent]]
-    ) -> None:
-        error_msg = "invalid agent configuration, got {}, expected {}"
-        if not isinstance(agents, (dict, list)):
-            raise error.InvalidAgentConfigurationError(
-                error_msg.format(type(agents), "list or dictionary of agents")
-            )
-        if len(agents) != self.dealer.num_players:
-            raise error.InvalidAgentConfigurationError(
-                error_msg.format(
-                    f"{len(agents)} number of agents",
-                    f"{self.dealer.num_players} number of agents",
-                )
-            )
-        if isinstance(agents, list):
-            agent_keys = list(range(len(agents)))
-        else:
-            agent_keys = list(agents.keys())
-            if set(agent_keys) != set(range(len(agents))):
-                raise error.InvalidAgentConfigurationError(
-                    f"invalid agent configuration, got {agent_keys}, "
-                    f"expected permutation of {list(range(len(agents)))}"
-                )
-            agents = list(agents.values())
-        all_base_agents = all(isinstance(_agent, agent.BaseAgent) for _agent in agents)
-        if not all_base_agents:
-            raise error.InvalidAgentConfigurationError(
-                error_msg.format(
-                    f"agent types {[type(_agent) for _agent in agents]}",
-                    "only subtypes of poker_game.agent.BaseAgent",
-                )
-            )
-        self.agents = dict(zip(agent_keys, agents))
+class ObservationWrapper(ObsType):
+    def __init__(self):
+        pass
 
 
 def register(configs: Dict[str, poker_game.configs.PokerConfig]) -> None:
@@ -266,8 +59,8 @@ def register(configs: Dict[str, poker_game.configs.PokerConfig]) -> None:
         dictionary of poker_game configs, keys must environment ids and
         values valid poker_game configs, example:
             configs = {
-                'NoLimitHoldemTwoPlayer-v0': {
-                    'num_players': 2,
+                'NoLimitHoldemNinePlayer-v0': {
+                    'num_players': 9,
                     'num_streets': 4,
                     'blinds': [1, 2],
                     'antes': 0,
@@ -283,7 +76,7 @@ def register(configs: Dict[str, poker_game.configs.PokerConfig]) -> None:
                 }
             }
     """
-    env_entry_point = "poker_gym.envs.env:ClubsEnv"
+    env_entry_point = "poker_gym.envs.env:PokerEnv"
     for env_id, config in configs.items():
         gym.envs.registration.register(
             id=env_id, entry_point=env_entry_point, kwargs={**config}
