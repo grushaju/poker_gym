@@ -9,5 +9,5 @@ class NoLimitHoldemAgent(base.BaseAgent):
         super().__init__()
         self.model = model
 
-    def act(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+    def act(self, obs: poker_game.poker.old_engine.ObservationDict) -> int:
         return -1

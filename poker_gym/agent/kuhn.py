@@ -14,7 +14,7 @@ class NashKuhnAgent(base.BaseAgent):
             )
         self.alpha = alpha
 
-    def player_1_check(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+    def player_1_check(self, obs: poker_game.poker.old_engine.ObservationDict) -> int:
         rank = obs["hole_cards"][0].rank
         if rank == "Q":
             if random.random() < self.alpha:
@@ -28,7 +28,7 @@ class NashKuhnAgent(base.BaseAgent):
             return 0
         raise ValueError("got invalid card rank, expected one of [Q, K, A] got {f.}")
 
-    def player_1_bet(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+    def player_1_bet(self, obs: poker_game.poker.old_engine.ObservationDict) -> int:
         rank = obs["hole_cards"][0].rank
         if rank == "Q":
             return 0
@@ -40,12 +40,12 @@ class NashKuhnAgent(base.BaseAgent):
             return 1
         raise ValueError("got invalid card rank, expected one of [Q, K, A] got {f.}")
 
-    def _player_1(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+    def _player_1(self, obs: poker_game.poker.old_engine.ObservationDict) -> int:
         if obs["pot"] == 2:
             return self.player_1_check(obs)
         return self.player_1_bet(obs)
 
-    def _player_2_check(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+    def _player_2_check(self, obs: poker_game.poker.old_engine.ObservationDict) -> int:
         rank = obs["hole_cards"][0].rank
         if rank == "Q":
             if random.random() < 1 / 3:
@@ -57,7 +57,7 @@ class NashKuhnAgent(base.BaseAgent):
             return 1
         raise ValueError("got invalid card rank, expected one of [Q, K, A] got {f.}")
 
-    def _player_2_bet(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+    def _player_2_bet(self, obs: poker_game.poker.old_engine.ObservationDict) -> int:
         rank = obs["hole_cards"][0].rank
         if rank == "Q":
             return 0
@@ -69,12 +69,12 @@ class NashKuhnAgent(base.BaseAgent):
             return 1
         raise ValueError("got invalid card rank, expected one of [Q, K, A] got {f.}")
 
-    def _player_2(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+    def _player_2(self, obs: poker_game.poker.old_engine.ObservationDict) -> int:
         if obs["pot"] == 2:
             return self._player_2_check(obs)
         return self._player_2_bet(obs)
 
-    def act(self, obs: poker_game.poker.engine.ObservationDict) -> int:
+    def act(self, obs: poker_game.poker.old_engine.ObservationDict) -> int:
         if obs["action"] == 0:
             return self._player_1(obs)
         return self._player_2(obs)

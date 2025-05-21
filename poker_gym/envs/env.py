@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union, SupportsFloat
+from typing import Any, Dict, List, Optional, Tuple, Union, SupportsFloat, Literal, TypedDict
 
 import numpy as np
+from numpy import ndarray
+
 from gymnasium.core import ActType, ObsType, RenderFrame
 
 import poker_game
 import gymnasium as gym
 from gymnasium import spaces
+
+from poker_game import poker
+from poker_game.poker.engine import Dealer
 
 from poker_gym import agent, error
 
@@ -16,15 +21,54 @@ from poker_gym import agent, error
 class PokerEnv(gym.Env):
     metadata = {'render_modes': ['human', 'rgb_array']}
 
-    def _get_obs(self) -> ObsType:
-        pass
+    def __init__(
+            self,
+            num_players: Union[int, Literal["rnd"]],
+            num_streets: int,
+            blinds: Union[int, List[int]],
+            antes: Union[int, List[int]],
+            raise_sizes: Union[
+                int, Literal["pot", "inf"], List[Union[int, Literal["pot", "inf"]]]
+            ],
+            num_raises: Union[int, Literal["inf"], List[Union[int, Literal["inf"]]]],
+            num_suits: int,
+            num_ranks: int,
+            num_hole_cards: int,
+            num_community_cards: Union[int, List[int]],
+            num_cards_for_hand: int,
+            mandatory_num_hole_cards: int,
+            start_stack: int,
+            low_end_straight: bool = True,
+            order: Optional[List[str]] = None,
+    ):
+        super().__init__()
+        self.action_space = spaces.MultiDiscrete([5,5])
+        self.observation_space = spaces.Box(low=np.array([0.0, 0.0]), high=np.array([10.0, 20.0]), dtype=np.float64)
+        self.dealer = Dealer()
+
+    def _get_obs(self) -> ObsDict:
+        obs: ObsDict = {
+            "action": self.dealer.action,
+            "active": self.dealer.active,
+            "button": self.dealer.button,
+            "call": self.dealer.call,
+            "community_cards": self.dealer.community_cards,
+            # "hole_cards": self.hole_cards[self.action],
+            "hole_cards": self.dealer.hole_cards,
+            "max_raise": max_raise,
+            "min_raise": min_raise,
+            "pot": self.pot,
+            "stacks": self.stacks,
+            "street_commits": self.street_commits,
+        }
+        return obs
 
     def _get_info(self) -> dict:
-        pass
+        return {}
 
     def step(
             self, action: ActType
-    ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+    ) -> tuple[ObsDict, SupportsFloat, bool, bool, dict[str, Any]]:
         terminated = False
         truncated = False
         reward = np.random.random()
@@ -36,7 +80,7 @@ class PokerEnv(gym.Env):
             self,
             seed: Optional[int] = None,
             options: Optional[dict] = None,
-    ) -> tuple[ObsType, dict[str, Any]]:
+    ) -> tuple[ObsDict, dict[str, Any]]:
         observation = self._get_obs()
         info = self._get_info()
         return observation, info
@@ -44,10 +88,22 @@ class PokerEnv(gym.Env):
     def render(self) -> Union[RenderFrame, list[RenderFrame], None]:
         return None
 
-
-class ObservationWrapper(ObsType):
-    def __init__(self):
+    def close(self):
         pass
+
+
+class ObsDict(TypedDict):
+    action: int
+    active: List[bool]
+    button: int
+    call: int
+    community_cards: List[poker.Card]
+    hole_cards: List[poker.Card]
+    max_raise: int
+    min_raise: int
+    pot: int
+    stacks: List[int]
+    street_commits: List[int]
 
 
 def register(configs: Dict[str, poker_game.configs.PokerConfig]) -> None:

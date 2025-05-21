@@ -11,7 +11,7 @@ from poker_gym import error
 
 def test_env() -> None:
     env = gym.make("NoLimitHoldemTwoPlayer-v0")
-    dealer = poker_game.poker.Dealer(**poker_game.configs.NO_LIMIT_HOLDEM_TWO_PLAYER)
+    dealer = poker_game.poker.OldDealer(**poker_game.configs.NO_LIMIT_HOLDEM_TWO_PLAYER)
 
     env_obs = env.reset()
     dealer_obs = dealer.reset()

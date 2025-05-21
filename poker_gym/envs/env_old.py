@@ -128,7 +128,7 @@ class ClubsEnv(gym.Env):  # type: ignore
         order: Optional[List[str]] = None,
     ) -> None:
 
-        self.dealer = poker_game.Dealer(
+        self.dealer = poker_game.OldDealer(
             num_players,
             num_streets,
             blinds,
