@@ -1,4 +1,4 @@
-from . import base, kuhn, nolimitholdem
+from . import base, nolimitholdem
 from .base import BaseAgent
 
-__all__ = ["base", "BaseAgent", "kuhn", "nolimitholdem"]
+__all__ = ["base", "BaseAgent", "nolimitholdem"]

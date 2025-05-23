@@ -22,8 +22,7 @@ else:
     from . import agent, envs
 
 from typing import Dict
-
-import poker_game
+from poker_gym import configs
 
 __all__ = ["agent", "envs"]
 ENVS = []
@@ -31,8 +30,8 @@ ENVS = []
 
 def __register() -> None:
     try:
-        env_configs: Dict[str, poker_game.configs.PokerConfig] = {}
-        for name, config in poker_game.configs.__dict__.items():
+        env_configs: Dict[str, configs.PokerConfig] = {}
+        for name, config in configs.__dict__.items():
             if not name.endswith("_PLAYER"):
                 continue
             env_id = "".join(sub_string.title() for sub_string in name.split("_"))
