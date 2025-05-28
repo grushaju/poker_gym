@@ -24,7 +24,7 @@ else:
 from typing import Dict
 from poker_gym import configs
 
-__all__ = ["agent", "envs"]
+__all__ = ["agent", "envs", "common"]
 ENVS = []
 
 

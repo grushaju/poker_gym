@@ -1,4 +1,4 @@
-from . import base, nolimitholdem
-from .base import BaseAgent
+from . import nolimitholdem
+from .nolimitholdem import NoLimitHoldemAgent
 
-__all__ = ["base", "BaseAgent", "nolimitholdem"]
+__all__ = [ "nolimitholdem", "NoLimitHoldemAgent"]
