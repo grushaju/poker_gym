@@ -1,6 +1,6 @@
 import gymnasium as gym
 
-
+import numpy as np
 import poker_gym
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
@@ -13,29 +13,30 @@ model_name = "PPO-poker-agent"
 model = PPO.load(model_name, env=env)
 
 opts = {
-    "player_count": "rnd",
+    "player_count": 3,
     "max_round": 20,
     "model": model
 }
 observation, info = env.reset(options=opts)
 print(observation, info)
-#
-# for _ in range(20):
-#     # Take a random action
-#     action = env.action_space.sample()
-#     print("Action taken:", action)
-#
-#     # Do this action in the environment and get
-#     # next_state, reward, terminated, truncated and info
-#     observation, reward, terminated, truncated, info = env.step(action)
-#
-#     # If the game is terminated (in our case we land, crashed) or truncated (timeout)
-#     if terminated or truncated:
-#         # Reset the environment
-#         print("Environment is reset")
-#         observation, info = env.reset()
-#
-# env.close()
+
+for _ in range(20):
+    # Take a random action
+    action = np.array([0])
+    env.action_space.sample()
+    print("Action taken:", action)
+
+    # Do this action in the environment and get
+    # next_state, reward, terminated, truncated and info
+    observation, reward, terminated, truncated, info = env.step(action)
+
+    # If the game is terminated (in our case we land, crashed) or truncated (timeout)
+    if terminated or truncated:
+        # Reset the environment
+        print("Environment is reset")
+        observation, info = env.reset()
+
+env.close()
 
 
 # model_name = "PPO-poker-agent"

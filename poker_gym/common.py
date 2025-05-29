@@ -43,7 +43,7 @@ FOLD, CALL, RAISE, AMOUNT, MIN_AMOUNT, MAX_AMOUNT = "fold", "call", "raise", "am
 
 
 def get_valid_action(action, valid_actions: List[Dict[str, Dict]], round_state) -> (str, float, float):
-    r_only = any(act["action"] == RAISE for act in round_state["action_histories"][round_state["street"]])
+    r_only = any(act["action"] == "RAISE" for act in round_state["action_histories"][round_state["street"]])
     reward = 0
     wrong_choose_reward = -0.1  # Wrong choose: -0.1
     right_choose_reward = 0.05  # Right choose: +0.05

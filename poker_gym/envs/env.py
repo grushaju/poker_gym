@@ -10,14 +10,15 @@ from typing import Any, Dict, List, Optional, Union, SupportsFloat, Literal, Typ
 
 from gymnasium.spaces import Box
 from pypokerengine.engine.player import Player
-
+from pypokerengine.api.emulator import Emulator
+from pypokerengine.engine import Card
 
 from poker_gym.agent import NoLimitHoldemAgent
-from poker_gym.common import Stages, Actions
-from pypokerengine.api.emulator import Emulator
-
+from poker_gym.common import Stages, Actions, get_valid_action
+from poker_gym.common import FOLD, CALL, RAISE, AMOUNT, MIN_AMOUNT, MAX_AMOUNT
 from poker_gym import agent, error, configs
-from pypokerengine.engine import Card
+
+MAX_PLAYER_COUNT = 10
 
 
 # region Classes
@@ -65,9 +66,8 @@ class ObservationData(TypedDict):
 
 # endregion
 
-MAX_PLAYER_COUNT = 10
 
-
+# region Common methods
 def one_hot(size, idx) -> np.ndarray:
     return np.eye(size)[idx].astype(dtype=np.float32)
 
@@ -101,7 +101,9 @@ def get_stage_data(current_round, seats, main_pot, start_stack) -> dict:
     res["contribution"] = [0] * MAX_PLAYER_COUNT
     res["stack_at_action"] = [0] * MAX_PLAYER_COUNT
     res["community_pot_at_action"] = [0] * MAX_PLAYER_COUNT
-    for item in current_round:
+    for item in current_round :
+        if item["action"] == "FOLD":
+            continue
         action, uuid, amount = item["action"], item["uuid"], item["amount"]
         idx, player = [(index, item) for (index, item) in enumerate(seats.players) if item.uuid == uuid][0]
         res["calls"][idx] = action == Player.ACTION_CALL_STR
@@ -123,10 +125,18 @@ def flatten(items):
             yield x
 
 
-def to_ndarray(items) -> np.ndarray:
+def to_ndarray(items, size=-1) -> np.ndarray:
     arr = list(items)
+    if size > len(arr):
+        arr += [0] * (size - len(arr))
     return np.array(arr).astype(dtype=np.float32)
 
+
+def get_info() -> dict:
+    return {}
+
+
+# endregion
 
 
 class PokerEnv(gym.Env):
@@ -141,8 +151,10 @@ class PokerEnv(gym.Env):
 
         empty_card = [-1, -1]
 
+        self.uuid = "p_trained_uuid"
         self.emulator = None
         self.events = []
+        self.last_game_state = {}
 
         # region Configure table data
         self.table_data = TableData(small_blind=small_blind,
@@ -227,9 +239,6 @@ class PokerEnv(gym.Env):
         })
 
     # region Private methods
-    @staticmethod
-    def _get_info() -> dict:
-        return {}
 
     def _get_obs(self) -> ObservationData:
         obs: ObservationData = {
@@ -257,15 +266,15 @@ class PokerEnv(gym.Env):
         return arr
 
     def _get_community_data(self) -> np.ndarray:
-        arr = np.hstack(
-            (to_ndarray(self.community_data["stage"]),
-             cards_to_one_hot(self.community_data["community_cards"]),
-             np.array(self.community_data["community_pot"]),
-             np.array(self.community_data["current_round_pot"]),
-             to_ndarray(self.community_data["position"]),
-             to_ndarray(self.community_data["active_players"])
-             )
+        st, cards, pot, c_pot, pos, act = (
+            to_ndarray(self.community_data["stage"]),
+            cards_to_one_hot(self.community_data["community_cards"]),
+            np.array(self.community_data["community_pot"]),
+            np.array(self.community_data["current_round_pot"]),
+            to_ndarray(self.community_data["position"], MAX_PLAYER_COUNT),
+            to_ndarray(self.community_data["active_players"], MAX_PLAYER_COUNT)
         )
+        arr = np.hstack((st, cards, pot, c_pot, pos, act))
         return arr
 
     def _get_pre_flop_data(self) -> np.ndarray:
@@ -292,9 +301,22 @@ class PokerEnv(gym.Env):
     ) -> tuple[ObservationData, SupportsFloat, bool, bool, dict[str, Any]]:
         terminated = False
         truncated = False
-        reward = np.random.random()
+        action = Actions(action)
+        next_player_pos = len(self.last_game_state["table"].seats.players) - 1
+        valid_actions, hole_card, round_state = (
+            self.emulator.get_state_before_play(next_player_pos, self.last_game_state))
+        act, bet_amount, reward = get_valid_action(action, valid_actions, round_state)
+
+        game_state, events = self.emulator.apply_action(self.last_game_state, act, bet_amount)
+        self._update_obs(game_state, events)
+        if act == FOLD:
+            game_state, events = self.emulator.run_until_game_finish(game_state)
+        else:
+            game_state, events = self.emulator.run_until_ask_player(game_state, self.uuid, self.update_obs_call)
+        self._update_obs(game_state, events)
+        self.last_game_state = game_state
         observation = self._get_obs()
-        info = self._get_info()
+        info = get_info()
         return observation, reward, truncated, terminated, info
 
     def reset(
@@ -326,18 +348,19 @@ class PokerEnv(gym.Env):
             player = NoLimitHoldemAgent(uuid, model, self.get_obs_call())
             players_info[uuid] = {"name": "p_old_{}".format(i), "stack": self.table_data["start_stack"]}
             self.emulator.register_player(uuid, player)
-        uuid = "p_trained_uuid"
-        players_info[uuid] = {"name": "p_trained", "stack": self.table_data["start_stack"]}
+        self.uuid = "p_trained_uuid"
+        players_info[self.uuid] = {"name": "p_trained", "stack": self.table_data["start_stack"]}
 
         game_state = self.emulator.generate_initial_game_state(players_info)
         game_state, events = self.emulator.start_new_round(game_state)
         self.events += events
         self._update_obs(game_state, events)
-        game_state, events = self.emulator.run_until_ask_player(game_state, uuid, self.update_obs_call)
+        game_state, events = self.emulator.run_until_ask_player(game_state, self.uuid, self.update_obs_call)
         self._update_obs(game_state, events)
 
         observation = self._get_obs()
-        info = self._get_info()
+        info = get_info()
+        self.last_game_state = game_state
         return observation, info
 
     def render(self) -> Union[RenderFrame, list[RenderFrame], None]:
@@ -356,9 +379,13 @@ class PokerEnv(gym.Env):
         self.player_data["position"] = table.seats.players[table.dealer_btn].uuid == self_player.uuid
         self.player_data["hole_cards"] = cards_to_list(self_player.hole_card)
 
-        round_state = [item for item in events if item["type"] == "event_ask_player"][0]["round_state"]
+        ask_events = [item for item in events if item["type"] == "event_ask_player"]
+        if len(ask_events) != 1:
+            return
+        round_state = ask_events[0]["round_state"]
         current_round = round_state["action_histories"][round_state["street"]]
-        current_round_pot = sum([item["amount"] for (index, item) in enumerate(current_round)])
+        current_round_pot = sum(
+            [item["amount"] for (index, item) in enumerate(current_round) if item["action"] != "FOLD"])
         main_pot = round_state["pot"]["main"]["amount"]
         side_pots = 0 \
             if len(round_state["pot"]["side"]) == 0 \
