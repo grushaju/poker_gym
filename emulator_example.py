@@ -42,6 +42,6 @@ emulator.register_player(list(players_info)[1], random_player.RandomPlayer())
 
 game_state = emulator.generate_initial_game_state(players_info)
 game_state, events = emulator.start_new_round(game_state)
-game_state, events = emulator.run_until_ask_player(game_state, ai_name)
+game_state, events = emulator.run_until_round_finish_with_player_ask(game_state, ai_name)
 print(game_state, events)
 

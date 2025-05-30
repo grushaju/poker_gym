@@ -17,6 +17,7 @@ from poker_gym.agent import NoLimitHoldemAgent
 from poker_gym.common import Stages, Actions, get_valid_action
 from poker_gym.common import FOLD, CALL, RAISE, AMOUNT, MIN_AMOUNT, MAX_AMOUNT
 from poker_gym import agent, error, configs
+from pypokerengine.engine.poker_constants import PokerConstants as Const
 
 MAX_PLAYER_COUNT = 10
 
@@ -302,18 +303,32 @@ class PokerEnv(gym.Env):
         terminated = False
         truncated = False
         action = Actions(action)
-        next_player_pos = len(self.last_game_state["table"].seats.players) - 1
+
+        game_state, events = self.emulator.run_until_game_finish_with_player_asking(
+            self.last_game_state, self.uuid, self.update_obs_call)
+
+        if game_state["street"] == Const.Street.FINISHED:
+            pass
+
+        next_player_pos = game_state["next_player"]
         valid_actions, hole_card, round_state = (
             self.emulator.get_state_before_play(next_player_pos, self.last_game_state))
         act, bet_amount, reward = get_valid_action(action, valid_actions, round_state)
+        game_state, events = self.emulator.apply_action(game_state, act, bet_amount)
+        self._update_obs(game_state, events)
 
-        game_state, events = self.emulator.apply_action(self.last_game_state, act, bet_amount)
-        self._update_obs(game_state, events)
-        if act == FOLD:
-            game_state, events = self.emulator.run_until_game_finish(game_state)
-        else:
-            game_state, events = self.emulator.run_until_ask_player(game_state, self.uuid, self.update_obs_call)
-        self._update_obs(game_state, events)
+
+        # next_player_pos = len(self.last_game_state["table"].seats.players) - 1
+        # valid_actions, hole_card, round_state = (
+        #     self.emulator.get_state_before_play(next_player_pos, self.last_game_state))
+        # act, bet_amount, reward = get_valid_action(action, valid_actions, round_state)
+
+        # game_state, events = self.emulator.apply_action(self.last_game_state, act, bet_amount)
+        # self._update_obs(game_state, events)
+        # game_state, events = self.emulator.run_until_ask_player(game_state, self.uuid, self.update_obs_call)
+        # self._update_obs(game_state, events)
+        # if game_state["street"] == Const.Street.FINISHED:
+        #     game_state, events = self.emulator.run_until_ask_player(game_state, self.uuid, self.update_obs_call)
         self.last_game_state = game_state
         observation = self._get_obs()
         info = get_info()
@@ -353,10 +368,10 @@ class PokerEnv(gym.Env):
 
         game_state = self.emulator.generate_initial_game_state(players_info)
         game_state, events = self.emulator.start_new_round(game_state)
-        self.events += events
+        # self.events += events
         self._update_obs(game_state, events)
-        game_state, events = self.emulator.run_until_ask_player(game_state, self.uuid, self.update_obs_call)
-        self._update_obs(game_state, events)
+        # game_state, events = self.emulator.run_until_ask_player(game_state, self.uuid, self.update_obs_call)
+        # self._update_obs(game_state, events)
 
         observation = self._get_obs()
         info = get_info()
