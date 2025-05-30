@@ -17,6 +17,7 @@ class NoLimitHoldemAgent(BasePokerPlayer):
         obs = self.get_obs_func()
         action, _states = self.model.predict(obs)
 
-        action = Actions(action.item())
+        # action = Actions(action.item())
+        action = Actions.CALL
         action, amount, __ = get_valid_action(action, valid_actions, round_state)
         return action, amount

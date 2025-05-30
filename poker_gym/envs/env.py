@@ -84,9 +84,11 @@ def cards_to_list(cards: List[int]) -> List[List[int]]:
     return idx
 
 
-def cards_to_one_hot(hole_cards):
+def cards_to_one_hot(cards, size=-1):
     arr = []
-    for card in hole_cards:
+    if size > len(cards):
+        cards += [[-1, -1]] * (size - len(cards))
+    for card in cards:
         if card[0] == card[1] == -1:
             arr = np.hstack((arr, np.zeros(13).astype(dtype=np.float32), np.zeros(4).astype(dtype=np.float32)))
         else:
@@ -150,8 +152,6 @@ class PokerEnv(gym.Env):
     ):
         super().__init__()
 
-        empty_card = [-1, -1]
-
         self.uuid = "p_trained_uuid"
         self.emulator = None
         self.events = []
@@ -183,7 +183,7 @@ class PokerEnv(gym.Env):
 
         # region Configure player data
         self.player_data = PlayerData(stack=1 / MAX_PLAYER_COUNT,
-                                      hole_cards=[empty_card] * 2,
+                                      hole_cards=[],
                                       position=False,
                                       )
         low = np.zeros(1 + 17 * 2 + 1).astype(np.float32)
@@ -193,7 +193,7 @@ class PokerEnv(gym.Env):
 
         # region Configure community data
         self.community_data = CommunityData(stage=[False] * (len(Stages)),
-                                            community_cards=[empty_card] * 5,
+                                            community_cards=[],
                                             community_pot=0,
                                             current_round_pot=0,
                                             position=[False] * MAX_PLAYER_COUNT,
@@ -260,7 +260,7 @@ class PokerEnv(gym.Env):
     def _get_player_data(self) -> np.ndarray:
         arr = np.hstack(
             (np.array(self.player_data["stack"]).astype(np.float32),
-             cards_to_one_hot(self.player_data["hole_cards"]),
+             cards_to_one_hot(self.player_data["hole_cards"], 2),
              np.array(self.player_data["position"]).astype(np.float32)
              )
         )
@@ -269,7 +269,7 @@ class PokerEnv(gym.Env):
     def _get_community_data(self) -> np.ndarray:
         st, cards, pot, c_pot, pos, act = (
             to_ndarray(self.community_data["stage"]),
-            cards_to_one_hot(self.community_data["community_cards"]),
+            cards_to_one_hot(self.community_data["community_cards"], 5),
             np.array(self.community_data["community_pot"]),
             np.array(self.community_data["current_round_pot"]),
             to_ndarray(self.community_data["position"], MAX_PLAYER_COUNT),
@@ -312,7 +312,7 @@ class PokerEnv(gym.Env):
 
         next_player_pos = game_state["next_player"]
         valid_actions, hole_card, round_state = (
-            self.emulator.get_state_before_play(next_player_pos, self.last_game_state))
+            self.emulator.get_state_before_play(next_player_pos, game_state))
         act, bet_amount, reward = get_valid_action(action, valid_actions, round_state)
         game_state, events = self.emulator.apply_action(game_state, act, bet_amount)
         self._update_obs(game_state, events)
@@ -330,6 +330,9 @@ class PokerEnv(gym.Env):
         # if game_state["street"] == Const.Street.FINISHED:
         #     game_state, events = self.emulator.run_until_ask_player(game_state, self.uuid, self.update_obs_call)
         self.last_game_state = game_state
+        if game_state["street"] == Const.Street.FINISHED:
+            if len([1 for p in game_state["table"].seats.players if p.is_active()]) == 1:
+                self.emulator.generate_game_result_event(game_state)
         observation = self._get_obs()
         info = get_info()
         return observation, reward, truncated, terminated, info
